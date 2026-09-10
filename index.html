@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="tJpTScU9cBhFPCVg2DgAPD">
+<head data-page-node-id="WpBhTuu0t6Vslydu7Ei3CX">
+  <meta charset="UTF-8" data-page-node-id="u3wPChxerLQeH8XkzTbvcs">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="XvRGziwmZyJfJOaQGNGQKw">
+  <title>卡片管理与Markdown文本板</title>
+  <style>
+    :root {
+      --bg-page: #f8fafc;
+      --card-bg: #ffffff;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --primary-border: #bfdbfe;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --border-card: #e2e8f0;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+      --shadow-hover: 0 8px 20px rgba(37, 99, 235, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+      --radius-card: 14px;
+      --radius-btn: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 28px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .top-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #ffffff;
+      padding: 16px 28px;
+      border-radius: var(--radius-card);
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 16px rgba(148, 163, 184, 0.1);
+      margin-bottom: 32px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: var(--radius-btn);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+      border: 1.5px solid transparent;
+    }
+
+    .btn-add {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    }
+    .btn-add:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    }
+    .btn-add:active {
+      transform: translateY(0);
+    }
+
+    .btn-lock-toggle {
+      border: 1.5px solid var(--border-color);
+      background: #ffffff;
+      color: var(--text-muted);
+    }
+    .btn-lock-toggle.locked {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #475569;
+    }
+    .btn-lock-toggle.locked:hover {
+      background: #f1f5f9;
+      color: var(--text-main);
+    }
+
+    .btn-lock-toggle.unlocked {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #059669;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+    .btn-lock-toggle.unlocked:hover {
+      background: #d1fae5;
+    }
+
+    .mode-hint {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-left: 14px;
+      font-weight: normal;
+      background: var(--primary-light);
+      padding: 4px 12px;
+      border-radius: 20px;
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+    }
+
+    .cards-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 24px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border-card);
+      border-radius: var(--radius-card);
+      padding: 20px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      position: relative;
+      transition: all 0.25s ease;
+      min-height: 180px;
+    }
+
+    .card:hover {
+      border-color: #93c5fd;
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    body.is-unlocked .card {
+      border-color: #3b82f6;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.1);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    /* 需求3：“编号：n”改为”编号：n“ */
+    .badge-number-box {
+      display: inline-flex;
+      align-items: center;
+      background: var(--primary-light);
+      border: 1px solid var(--primary-border);
+      border-radius: 6px;
+      padding: 2px 8px;
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .badge-number-label {
+      margin-right: 4px;
+      opacity: 0.9;
+    }
+
+    /* 需求2：取消上下增减，只允许手动输入1-100 */
+    .badge-number-val {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      font-size: 14px;
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-weight: 700;
+      width: 38px;
+      text-align: center;
+      outline: none;
+      -moz-appearance: textfield !important;
+    }
+
+    .badge-number-val::-webkit-outer-spin-button,
+    .badge-number-val::-webkit-inner-spin-button {
+      -webkit-appearance: none !important;
+      margin: 0 !important;
+    }
+
+    body.is-unlocked .badge-number-val {
+      background: #ffffff;
+      border: 1px solid #93c5fd;
+      border-radius: 4px;
+      cursor: text;
+    }
+
+    .btn-edit-action {
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--primary-border);
+      background: #ffffff;
+      color: var(--primary);
+      cursor: pointer;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .btn-edit-action:hover {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    .card-title-section {
+      min-height: 52px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .title-view {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 6px;
+      word-break: break-word;
+      text-align: center;
+      width: 100%;
+    }
+
+    .title-input {
+      width: 90%;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1.5px solid #3b82f6;
+      background: #ffffff;
+      outline: none;
+      display: none;
+      text-align: center;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    body.is-unlocked .title-view {
+      display: none;
+    }
+    body.is-unlocked .title-input {
+      display: block;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding-top: 4px;
+    }
+
+    .btn-copy {
+      padding: 7px 22px;
+      font-size: 13.5px;
+      font-weight: 600;
+      border: 1.5px solid var(--primary);
+      border-radius: 20px;
+      background: #ffffff;
+      color: var(--primary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn-copy:hover {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    }
+    .btn-copy:active {
+      transform: scale(0.98);
+    }
+
+    .btn-trash-corner {
+      position: absolute;
+      right: 0;
+      bottom: 2px;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      border-radius: 6px;
+      cursor: pointer;
+      opacity: 0.45;
+      transition: all 0.2s ease;
+    }
+    .btn-trash-corner:hover {
+      opacity: 1;
+      color: var(--danger);
+      background: #fee2e2;
+    }
+
+    body:not(.is-unlocked) .btn-trash-corner {
+      display: none;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      padding: 20px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-dialog {
+      background: #ffffff;
+      width: 100%;
+      max-width: 920px;
+      height: 82vh;
+      min-height: 520px;
+      border-radius: 16px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: scale(0.96);
+      transition: transform 0.2s ease;
+    }
+
+    .modal-overlay.active .modal-dialog {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-color);
+      background: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .modal-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .modal-lock-badge {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .modal-lock-badge.locked {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+    }
+    .modal-lock-badge.unlocked {
+      background: #eff6ff;
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
+    }
+
+    .btn-close-modal {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: #ffffff;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      color: #64748b;
+    }
+    .btn-close-modal:hover {
+      background: #f1f5f9;
+      color: var(--text-main);
+    }
+
+    .modal-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .modal-lock-alert {
+      background: var(--primary-light);
+      border-bottom: 1px solid var(--primary-border);
+      color: #1e40af;
+      padding: 10px 24px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-markdown-view {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #334155;
+    }
+
+    .modal-markdown-view h1,
+    .modal-markdown-view h2,
+    .modal-markdown-view h3 {
+      margin-top: 14px;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+    .modal-markdown-view h1 { font-size: 1.4em; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+    .modal-markdown-view h2 { font-size: 1.2em; }
+    .modal-markdown-view h3 { font-size: 1.05em; }
+    .modal-markdown-view p { margin-bottom: 12px; }
+    .modal-markdown-view ul, .modal-markdown-view ol { padding-left: 24px; margin-bottom: 12px; }
+    .modal-markdown-view li { margin-bottom: 4px; }
+    .modal-markdown-view code { background: #eff6ff; color: var(--primary); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+    .modal-markdown-view pre { background: #0f172a; color: #f8fafc; padding: 12px 16px; border-radius: 8px; overflow-x: auto; margin-bottom: 14px; }
+    .modal-markdown-view pre code { background: transparent; color: inherit; padding: 0; }
+    .modal-markdown-view blockquote { border-left: 4px solid #93c5fd; padding-left: 14px; color: #64748b; margin-bottom: 12px; font-style: italic; }
+
+    .modal-editor-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .editor-tabs-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 24px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .tab-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .tab-btn {
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover {
+      background: #f1f5f9;
+      color: var(--text-main);
+    }
+    .tab-btn.active {
+      background: #ffffff;
+      color: var(--primary);
+      border-color: #cbd5e1;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .editor-workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .editor-pane {
+      flex: 1;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-textarea {
+      width: 100%;
+      height: 100%;
+      padding: 20px 24px;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 15px;
+      line-height: 1.6;
+      color: #0f172a;
+      border: none;
+      outline: none;
+      resize: none;
+      background: #ffffff;
+    }
+
+    .editor-preview-pane {
+      display: none;
+      flex: 1;
+      height: 100%;
+      padding: 20px 24px;
+      overflow-y: auto;
+      background: #f8fafc;
+      border-left: 1px solid var(--border-color);
+    }
+
+    .editor-workspace.mode-edit .editor-preview-pane { display: none; }
+    .editor-workspace.mode-edit .editor-pane { display: flex; width: 100%; }
+
+    .editor-workspace.mode-preview .editor-pane { display: none; }
+    .editor-workspace.mode-preview .editor-preview-pane { display: block; width: 100%; border-left: none; }
+
+    .editor-workspace.mode-split .editor-pane { display: flex; width: 50%; }
+    .editor-workspace.mode-split .editor-preview-pane { display: block; width: 50%; }
+
+    .modal-footer {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border-color);
+      background: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn-finish-modal {
+      background: var(--primary);
+      color: #ffffff;
+      padding: 8px 22px;
+      border-radius: var(--radius-btn);
+    }
+    .btn-finish-modal:hover {
+      background: var(--primary-hover);
+    }
+
+    .delete-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(5px);
+      z-index: 1200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s ease;
+      padding: 20px;
+    }
+
+    .delete-modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .delete-modal-dialog {
+      background: #ffffff;
+      width: 100%;
+      max-width: 440px;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform 0.2s ease;
+    }
+
+    .delete-modal-overlay.active .delete-modal-dialog {
+      transform: scale(1);
+    }
+
+    .delete-modal-header {
+      padding: 16px 22px;
+      background: #fef2f2;
+      border-bottom: 1px solid #fee2e2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .delete-modal-body {
+      padding: 22px;
+    }
+
+    .delete-input {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14.5px;
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .delete-input:focus {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+    }
+
+    .delete-modal-footer {
+      padding: 14px 22px;
+      background: #f8fafc;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn-confirm-delete {
+      background: #cbd5e1;
+      color: #ffffff;
+      border: none;
+      cursor: not-allowed;
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-confirm-delete.enabled {
+      background: var(--danger);
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+    .btn-confirm-delete.enabled:hover {
+      background: var(--danger-hover);
+    }
+
+    .toast-notice {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 11px 18px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.25s ease;
+      z-index: 9999;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toast-notice.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      background: #ffffff;
+      border-radius: var(--radius-card);
+      border: 1.5px dashed var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .sync-status {
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .sync-status.sync-pending { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+    .sync-status.sync-syncing { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+    .sync-status.sync-ok      { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+    .sync-status.sync-error   { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+    .sync-status:hover { filter: brightness(0.96); }
+
+    .gist-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 20px;
+    }
+    .gist-modal-overlay.active { display: flex; }
+    .gist-modal {
+      background: #fff;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 560px;
+      padding: 26px 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    }
+    .gist-modal h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .gist-modal .gist-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .gist-field { margin-bottom: 16px; }
+    .gist-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .gist-field input {
+      width: 100%;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-family: var(--font-mono, monospace);
+      border: 1.5px solid var(--border-color);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .gist-field input:focus { border-color: var(--primary); }
+    .gist-field .gist-help {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+    .gist-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 22px;
+    }
+    .gist-warn {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 12px;
+      color: #92400e;
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    .gate-overlay {
+      position: fixed;
+      inset: 0;
+      background: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+    .gate-overlay.hidden { display: none; }
+    .gate-card {
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(148, 163, 184, 0.18);
+      padding: 34px 36px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+    .gate-icon {
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      background: var(--primary-light);
+      border: 1px solid var(--primary-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .gate-card h2 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+    .gate-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 22px;
+      line-height: 1.6;
+    }
+    .gate-card input {
+      width: 100%;
+      padding: 11px 14px;
+      font-size: 14px;
+      text-align: center;
+      letter-spacing: 1px;
+      border: 1.5px solid var(--border-color);
+      border-radius: 9px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .gate-card input:focus { border-color: var(--primary); }
+    .gate-card input.err {
+      border-color: #ef4444;
+      background: #fef2f2;
+      animation: gateShake 0.32s ease;
+    }
+    @keyframes gateShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+    .gate-card button {
+      width: 100%;
+      margin-top: 14px;
+      padding: 11px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--primary);
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .gate-card button:hover { background: var(--primary-hover); }
+    .gate-tip {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body data-page-node-id="76HH2slraZ4uVKHLVYDw7N">
+
+  <div class="gate-overlay" id="gateOverlay">
+    <div class="gate-card">
+      <div class="gate-icon">🔐</div>
+      <h2>需要访问密码</h2>
+      <p>这个页面是私人的，请输入密码后进入。</p>
+      <input type="password" id="gateInput" placeholder="请输入密码" autocomplete="off" spellcheck="false">
+      <button id="gateBtn">进入</button>
+      <div class="gate-tip" id="gateTip">首次进入后本设备将记住</div>
+    </div>
+  </div>
+
+  <header class="top-toolbar" data-page-node-id="Z3W9LGsYgxic0xnUaFfKbz">
+    <div style="display: flex; align-items: center;" data-page-node-id="MdRch3xsFYPRAmyVZwD68d">
+      <button class="btn btn-add" id="btnAddCard" title="在页面中新增一张卡片" data-page-node-id="mDZ22z8LVTRR7jXSafW2K0">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" data-page-node-id="oRO3JfTtu5fp2kxIEV588M">
+          <line x1="12" y1="5" x2="12" y2="19" data-page-node-id="RpejEAsmJ51n3FKgBFV6Qh"></line>
+          <line x1="5" y1="12" x2="19" y2="12" data-page-node-id="nh3a2DFKiMHHRy9Zeo8Sz0"></line>
+        </svg>
+        添加
+      </button>
+      <span class="mode-hint" id="cardCountInfo" data-page-node-id="V8kOttG3FkzNMuvcMqQyvv">卡片数量：0 / 100</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px;" data-page-node-id="cLRaUK6bbs4EPZdaiyXHnz">
+      <span class="sync-status sync-pending" id="syncStatus" title="点击查看同步设置" data-page-node-id="SyncStatusNode">未开启同步</span>
+      <button class="btn btn-lock-toggle locked" id="btnToggleLock" data-page-node-id="EZcVv9FNJmzxGhe5jgksL3">
+        <span id="lockIcon" data-page-node-id="SH87l44S2hjRjmdWuwbojG">🔒</span>
+        <span id="lockStatusText" data-page-node-id="WGuC8QZcJ8oBUfeJcvbECN">已锁定 (点击开启编辑)</span>
+      </button>
+      <button class="btn" id="btnSyncNow" style="border: 1.5px solid var(--border-color); background: #fff; color: var(--text-main);" title="立即从云端拉取最新数据">
+        拉取云端
+      </button>
+      <button class="btn" id="btnSyncSettings" style="border: 1.5px solid var(--border-color); background: #fff; color: var(--text-main);" title="设置 GitHub Gist 同步">
+        同步设置
+      </button>
+      <button class="btn" id="btnExportJson" style="background: #0f6e56; color: #fff; border-color: #0f6e56;" data-page-node-id="yfKGNFIghcvC684ILDAiiq">
+        导出备份
+      </button>
+    </div>
+  </header>
+
+  <main class="cards-container" id="cardsContainer" data-page-node-id="MhFSfvOzfQ3UzTuf1Nnb0Z">
+  </main>
+
+  <div class="modal-overlay" id="editModalOverlay" onclick="handleBackdropClick(event)" data-page-node-id="HZr0zpDuSQKTCjeSRJqkGv">
+    <div class="modal-dialog" id="editModalDialog" onclick="event.stopPropagation()" data-page-node-id="mDupQuqRKfMLklVCLYeL7G">
+      <div class="modal-header" data-page-node-id="LsA3S71Ut9oYP5OIwpeqQP">
+        <div class="modal-title-wrap" data-page-node-id="uCKqiiHnMy184dCBeTkJ9o">
+          <div class="badge-number-box" data-page-node-id="dfU7QLcGmvlwzIIMJ8WBB6">
+            <!-- 需求3：“编号：n”改为”编号：n“ -->
+            <span class="badge-number-label" data-page-node-id="E0DQQqqKSg0vXBORfrwjjO">编号:</span>
+            <span id="modalCardNumber" style="font-weight: bold;" data-page-node-id="sls1zDXl5VLDG1DWcN0So7">1</span>
+          </div>
+          <h3 id="modalCardTitle" class="modal-card-title" data-page-node-id="N3PijbT5wpipQbymAfY8hY">卡片标题</h3>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;" data-page-node-id="RN5fqD9ajNtFt785EcIgNt">
+          <span class="modal-lock-badge locked" id="modalLockBadge" data-page-node-id="Cvn2tEG5apt2Up15RSVvyb">🔒 锁定状态 (只读)</span>
+          <button class="btn-close-modal" onclick="closeEditModal()" title="关闭弹窗 (Esc)" data-page-node-id="WVy6NQPH0AhVfxHwmWIiZT">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-body" id="modalBodyContainer" data-page-node-id="50VvGm14OvhNjzVswqC5gH">
+      </div>
+
+      <div class="modal-footer" data-page-node-id="ooXrFMdMuWsVJX1Q0wTiKy">
+        <div style="display: flex; align-items: center; gap: 10px;" data-page-node-id="bUDrjHq9ePKJDRvmHNfyvP">
+          <button class="btn-copy" onclick="copyCurrentModalText()" title="只复制文本框内内容，不复制标题" data-page-node-id="IVvIQTYxFDGXuxRfH97CRH">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" data-page-node-id="HvZFL0CAXDuGReQjxkdm0L">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" data-page-node-id="TFphIedMTFvKFFSvdLxffP"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" data-page-node-id="5vY1hGg1KOI1J9Xkl3Mz24"></path>
+            </svg>
+            复制
+          </button>
+          <span style="font-size: 13px; color: var(--text-muted);" data-page-node-id="xARg5coZ4NzB5xFQYfbfis">(仅复制正文，不复制标题)</span>
+        </div>
+
+        <button class="btn btn-finish-modal" onclick="closeEditModal()" data-page-node-id="HE4zYzOb52700Lx2IhcoTu">
+          完成 / 关闭
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="delete-modal-overlay" id="deleteModalOverlay" onclick="handleDeleteBackdropClick(event)" data-page-node-id="ECmQ2fHShghFDer0GyIXPs">
+    <div class="delete-modal-dialog" onclick="event.stopPropagation()" data-page-node-id="vXQRfAEFAt1guZRYRBBokF">
+      <div class="delete-modal-header" data-page-node-id="ypP0lmesJpCMypJNvpeUle">
+        <h3 style="color: var(--danger); font-size: 15px; display: flex; align-items: center; gap: 6px; font-weight: 700;" data-page-node-id="iFqCA57fewYfHU585WkNhv">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" data-page-node-id="drciYydCSq2istY69GnjgI">
+            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" data-page-node-id="OCUaxXL8UpGwspn85S4QrY"></path>
+          </svg>
+          确认删除卡片
+        </h3>
+        <button class="btn-close-modal" onclick="closeDeleteModal()" data-page-node-id="c4BB4x0Wko9MOHlkMAwpfM">✕</button>
+      </div>
+
+      <div class="delete-modal-body" data-page-node-id="AEhHGHYY7eHc9owUW5oWvH">
+        <p style="font-size: 14px; color: #334155; margin-bottom: 12px; line-height: 1.5;" data-page-node-id="jRrGDnAX71sdbdjdfDgru8">
+          即将删除卡片 <b id="deleteTargetInfo" style="color: var(--primary);" data-page-node-id="gzK3X4EiaPFzTWAoenkQe7">[编号: 1]</b>。<br data-page-node-id="vagC3WOIi3YrL2GXp7llNA">
+          删除后剩余所有编号的编号将自动连续重排。
+        </p>
+        
+        <label style="display: block; font-size: 13px; font-weight: 700; color: var(--danger); margin-bottom: 8px;" data-page-node-id="SK2vDj1LAj07nyPNmZUUXq">
+          输入“迷死她瑞琦”方可删除：
+        </label>
+        <input 
+          type="text" 
+          id="deleteConfirmInput" 
+          class="delete-input" 
+          placeholder="输入“迷死她瑞琦”" 
+          autocomplete="off"
+          oninput="onDeleteInputCheck(this.value)" data-page-node-id="DARR9Iz0LddtZKVu5CHblg"
+        />
+      </div>
+
+      <div class="delete-modal-footer" data-page-node-id="FBxAkjZvGCagF5oWkThDfh">
+        <button class="btn" style="border: 1px solid var(--border-color);" onclick="closeDeleteModal()" data-page-node-id="kaKEDKGkjVknf4sBrTriwp">取消</button>
+        <button class="btn-confirm-delete" id="btnExecuteDelete" disabled onclick="executeCardDeletion()" data-page-node-id="D3p3USA85eLmzASQSmlHlU">
+          确认删除
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-notice" id="toastNotice" data-page-node-id="TxADoc40vB8j9LDcyKkHuB">
+    <span data-page-node-id="25OOwFpnQDBa1Evwc2haLa">✅</span>
+    <span id="toastMsg" data-page-node-id="mTdj6rqRCGS2Hzrd6VTHU6">已复制文本框内容！</span>
+  </div>
+
+  <div class="gist-modal-overlay" id="gistModalOverlay">
+    <div class="gist-modal">
+      <h3>云端同步设置</h3>
+      <div class="gist-sub">填好下面两项，所有设备打开这个网页都会读写同一份数据。</div>
+
+      <div class="gist-warn">
+        令牌只保存在你自己这台设备的浏览器里，不会上传到任何服务器。换设备时在新设备上重新填一次即可。
+      </div>
+
+      <div class="gist-field">
+        <label>Gist ID</label>
+        <input type="text" id="inputGistId" placeholder="例如 a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4" autocomplete="off" spellcheck="false">
+        <div class="gist-help">打开你的 Gist 页面，地址栏最后那一长串字符就是。</div>
+      </div>
+
+      <div class="gist-field">
+        <label>GitHub 令牌（Token）</label>
+        <input type="password" id="inputToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+        <div class="gist-help">在 github.com/settings/tokens 生成，只勾选 gist 权限就够。</div>
+      </div>
+
+      <div class="gist-actions">
+        <button class="btn" id="btnGistClear" style="border: 1.5px solid var(--border-color); background: #fff; color: var(--danger);">清除配置</button>
+        <button class="btn" id="btnGistCancel" style="border: 1.5px solid var(--border-color); background: #fff; color: var(--text-main);">取消</button>
+        <button class="btn btn-add" id="btnGistSave">保存并连接</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isUnlocked = false;
+    let cards = [];
+    let activeCardId = null;
+    let currentEditorMode = 'split';
+    let pendingDeleteCardId = null;
+
+    const REQUIRED_DELETE_SECRET = '迷死她瑞琦';
+    const LOCAL_STORAGE_KEY = 'ANTIGRAVITY_CARD_DATA_V6';
+    const LOCAL_CACHE_KEY = 'FLOWCARD_CACHE_V1';
+    const GIST_CONF_KEY = 'FLOWCARD_GIST_CONFIG_V1';
+    const GIST_FILENAME = 'cards.json';
+
+    let gistConfig = { gistId: '', token: '' };
+    let syncTimer = null;
+    let isSyncing = false;
+
+    const DEFAULT_CARDS = [
+      {
+        "id": "card_1",
+        "number": 1,
+        "title": "生成剧本",
+        "content": "你是一位资深短剧编剧，请把我提供的小说原文改编成适合拍摄的**剧本式文本**（不用分镜，只改内容）。要求：\n\n**1. 心理描写外化** 把心理活动、作者旁白转化为**对白、动作、表情或道具细节**。实在无法外化的关键信息，才保留为旁白或内心独白（标注 OS）。\n\n**2. 对白口语化** 小说腔的对话全部改写成日常口语，短句为主，符合人物身份和情绪。每句台词要有目的（推剧情/立人设/藏冲突），废话删掉。\n\n**3. 场景做减法** 合并功能重复的场景，删掉纯过渡情节。每场戏必须有明确的戏剧任务，没有任务的整场删掉，关键信息挪到其他场戏里。\n\n**4. 节奏调整**\n\n- 开场直接进事件或冲突，铺垫信息拆散到后面交代；\n- 冲突和爽点该放大的放大（可增写动作和对白），温吞的段落压缩；\n- 结尾落在钩子上（悬念/反转/冲突升级），不要落在平静处。\n\n**5. 忠实度边界** 主线剧情、人物性格、关键情节点保持原著不变；可自由改动的是：对白、场景顺序、次要情节的详略、过场的删并。\n\n**输出格式**：按场次输出，每场标注【场次编号：地点·日/夜·内/外】，正文用\"动作描述 + 人物台词\"的剧本体书写，动作描述只写可拍摄的内容。"
+      },
+      {
+        "id": "card_1788686328683_4kgz",
+        "number": 2,
+        "title": "时长确认",
+        "content": "## 镜头数量确认\n\n请先不要生成正式分镜表，也不要输出完整镜头内容。\n\n请通读我提供的剧本，根据剧情节拍、人物动作、台词长度、情绪变化、场景调度和成片节奏，确定本段合理的镜头数量。\n\n请输出：\n\n1. 本段预计成片时长：\n2. 建议镜头总数：\n3. 每个剧情节拍对应的镜头数量：\n4. 每个镜头的预计时长：\n5. 哪些镜头适合使用长镜头：\n6. 哪些长台词需要拆镜：\n7. 镜头数量安排的简要理由：\n\n请遵守以下原则：\n\n- 不要按一句台词机械拆成一个镜头；\n- 不要为了增加镜头数量而重复拍摄相同内容；\n- 长台词不一定必须切镜，可以通过推镜、跟拍、人物走位、道具动作或画外音完成视觉变化；\n- 每个镜头必须承担明确的叙事功能；\n- 镜头总时长应与预计成片时长基本一致；\n- 镜头数量确定后，不要擅自增加或减少。\n\n请按照以下格式输出：\n\n| 节拍 | 剧情内容 | 镜头数量 | 预计时长 | 镜头安排说明 |\n|---|---|---:|---:|---|\n| 节拍1 |  |  |  |  |\n| 节拍2 |  |  |  |  |\n\n最后单独输出：\n\n**建议镜头总数：X个**  \n**预计总时长：X秒**"
+      },
+      {
+        "id": "card_2",
+        "number": 3,
+        "title": "制作脚本",
+        "content": "## 角色设定\n\n你是一位资深短剧导演兼分镜师，拥有10年以上横屏剧集执导经验，精通视听语言。你的任务是将我提供的剧本，转化为**可直接开机拍摄的分镜脚本**。你不是在\"翻译文字\"，而是在**用镜头重新讲这个故事**。本场约束：成片时长控制在XX～XX秒，镜头总数控制在XX～XX个\n\n## 核心创作原则\n\n### 一、导演思维（先想清楚再拆镜头）\n\n1. **先通读全文**，明确本段戏的核心：这场戏的**戏剧任务**是什么（立人设/推剧情/埋钩子/给爽点）？情绪曲线从哪到哪？\n2. **信息视觉化**：小说中的心理描写、旁白信息，优先转化为**可拍的动作、表情、道具、环境细节**，实在无法视觉化的才用旁白（OS）或内心独白。\n3. **横屏构图思维**：默认16:9横屏。充分利用横向画幅优势——\n   - 善用**双人/多人同框**构图表现人物关系（对峙、疏离、亲密都可通过同框距离和前后景关系表达，不必全靠正反打）；\n   - 善用**环境叙事**，让空间纵深和背景信息参与讲故事（如前景虚化的道具、背景中的第三人）；\n4. **节奏控制**：单镜头一般3-6秒，全景交代镜头和情绪长镜头可延长至8-12秒；横屏对话戏节奏可比竖屏舒缓，但避免连续超过3个相同机位的正反打，用过肩、双人同框、反应镜头、道具特写打散。\n\n### 二、空间与站位\n\n1. **视线方向**：写明人物看向哪里（看对方/看画外某物/低头回避），视线是情绪的语言，也决定画面留白方向。\n2. **前后景层次**：横屏画幅信息量大，写明前景、中景、背景各有什么（如\"前景虚焦的酒杯，中景两人对坐，背景服务生穿行\"），用层次制造画面纵深感。\n3. **道具与手部动作**：关键道具的位置、谁拿着、怎么用（如\"合同摔在两人之间的茶几上，纸页散开\"）。\n\n### 三、镜头衔接（前后镜号必须流畅）\n\n1. **相邻镜头景别跳跃有序**：遵循\"两级变化\"原则（全景→中景→近景→特写渐进，或有目的的大跳切制造冲击），避免同景别同机位直接硬切。\n2. **场景开场遵循\"由大到小\"**：定场全景→关系中景→单人近景/特写逐层进入；情绪爆发后可用\"由小到大\"拉出全景收尾，形成呼吸感。\n3. **动接动、静接静**：上一镜结尾的动作/视线/物体运动，要能被下一镜承接（如上镜手伸向门把→下镜门被推开）。\n4. **视线匹配**：人物看向画外→下一镜给出他看到的东西（POV或客观镜头）。\n5. **方向匹配**：人物出画方向与下一镜入画方向一致（画右出→画左入），保持运动的空间连贯。\n6. **每个镜头在表格中要能看出\"为什么接在上一个后面\"**，切换场景时用合理转场（甩镜/遮挡转场/声音先入/相似物匹配剪辑/叠化）。\n\n### 四、声音设计\n\n1. **台词**：口语化、短句化，删掉小说腔；标注说话人；内心独白标注\"（OS）\"，旁白标注\"（旁白）\"。\n2. **音效**：区分**环境音**（持续铺底，如雨声、餐厅嘈杂声）、**动效**（一次性，如摔杯、耳光、脚步）、**情绪音**（心跳声、耳鸣、bgm起/停/骤停）。BGM的起止点要标注在具体镜号。横屏定场镜头注意用环境音建立空间感。\n\n### 五、长台词拆镜与反应镜头\n\n1. **单人长台词必须拆镜**\n\n   - 同一角色连续台词超过 **8秒或22个汉字**，原则上不得在同一固定机位内完整说完。\n   - 应根据台词的语义转折、情绪递进和信息重点，拆分为 **2—4个镜头**。\n   - 除非是刻意设计的长镜头、独白或表演高潮，否则单一景别承载连续台词不得超过 **8秒**。\n\n2. **拆镜不能只是机械更换景别**\n   长台词过程中应从以下方式中组合选择：\n\n   - 说话者：中景→中近景→近景，逐步推进情绪；\n   - 说话者侧面、过肩、低角度或手部动作特写；\n   - 倾听者的反应镜头，如眼神闪躲、手指收紧、呼吸变化、吞咽、回头、停止动作；\n   - 关键道具或环境特写，如协议、戒指、手机、监控屏幕、掉落的笔；\n   - 双人同框或多人关系镜头，表现双方距离、站位和权力变化；\n   - 配合人物走位，用跟拍、横移或纵深调度完成构图变化。\n\n3. **按台词内部节奏确定切点**\n   优先在以下位置切镜：\n\n   - 语义转折处，如“但是”“可你”“所以”“直到今天”；\n   - 情绪升级前后；\n   - 说出关键人物、证据、数字或真相之前；\n   - 对方产生明显反应时；\n   - 说话者执行动作时，如推合同、摘眼镜、起身、转身、逼近对方。\n\n   禁止为了换镜而在一句话中间无逻辑地硬切。\n\n4. **台词可以跨镜连续**\n\n   - 同一角色的台词允许跨越多个镜头，不必每个镜头都重新标角色名或等待一句说完再切。\n   - 切到倾听者、道具或环境时，说话者的声音应继续，标注为“角色名（画外继续）”。\n   - 前一镜的语气、动作和视线必须被后一镜承接，保证台词和表演连续。\n   - 台词跨镜时，表格中应按每个镜头实际承载的句段拆分填写，不得把整段台词重复放入每个镜头。\n\n5. **反应镜头必须有戏剧价值**\n\n   - 切到其他人物时，必须拍到具体、可见的反应，不能只写“听他说话”。\n   - 应写明反应出现在哪个词或哪条信息之后，例如：“听到‘苏晴’时，赵凯敲桌的手停住半秒”。\n   - 反应镜头的长度一般为 **2—4秒**，重大真相揭露后的反应可延长至 **5—6秒**。\n   - 倾听者没有有效反应时，优先保留说话者表演，不要为了切镜而切镜。\n\n6. **长台词要形成视觉递进**\n   一段完整长台词的镜头设计应尽量包含：\n\n   - **起句：关系镜头**——交代说话者与倾听者的位置；\n   - **推进：说话者镜头**——通过推近、走位或动作增强情绪；\n   - **转折：反应或道具镜头**——突出信息造成的影响；\n   - **落点：近景或特写**——把最关键的一句话留给说话者；\n   - **余波：倾听者反应**——重要台词结束后，给对方留出消化信息的时间。\n\n7. **避免重复和过度碎切**\n\n   - 不得连续使用三个以上只有景别变化、内容却完全相同的说话者镜头。\n   - 不得把一句普通台词拆成大量1—2秒碎镜头。\n   - 换镜必须至少带来一种新信息：新的表情、新的动作、新的人物关系、新的道具信息或新的空间压力。\n   - 情绪克制、表演完整的段落可以适当保留长镜头，但必须在画面内部设计人物走位、景深变化或摄影机运动，避免“站桩念台词”。\n\n\n\n## 输出格式\n\n严格按以下7列Markdown表格输出，一行一个镜头：\n\n| 镜号 | 镜头控制（景别+运镜+角度） | 画面描述 | 台词 | 音效 | 时长 | 转场方式 |\n| ---- | -------------------------- | -------- | ---- | ---- | ---- | -------- |\n\n**各列规范：**\n\n- **镜号**：从1开始连续编号；换场景时可标注\"场次\"分隔行（如\"【场2：医院走廊·日·内】\"）。\n- **镜头控制**：景别（远/全/中/中近/近/特写）+ 运镜（固定/推/拉/摇/移/跟/环绕/手持/甩/升降）+ 角度（平视/俯拍/仰拍/过肩/POV/正面/侧面），三要素齐全，如\"中景 / 缓推 / 过肩微仰拍\"。\n- **画面描述**：按上述\"空间与站位\"要求写，具体到能直接指导演员走位和摄影机位，写明前中后景层次，禁止出现\"她很伤心\"这类不可拍的抽象描述，改为可见的动作细节。\n- **台词**：标注角色名，无台词填\"—\"。\n- **音效**：环境音/动效/BGM变化，无则填\"—\"。\n- **时长**：精确到秒，如\"4s\"。\n- **转场方式**：硬切/叠化/黑场/甩镜转场/遮挡转场/声音先入/匹配剪辑，最后一镜标注本集结尾钩子处理方式"
+      },
+      {
+        "id": "card_3",
+        "number": 4,
+        "title": "套拍分类",
+        "content": "角色\n你是AI漫剧的镜头分组助手。我用即梦生成视频，一条视频 = 一个分组，一条视频里可以塞多个参考图和多个镜头，即梦会在一条视频内完成镜头切换。我会给你一份分镜脚本，你的任务是把镜号重新分组，方便我逐条生成，生成后我再把每个镜头剪出来按原镜号拼接。\n\n分组的唯一目的\n判断\"哪些镜号能用同一条即梦视频、同一套人物状态生成出来\"。所以分组不看剧情段落、不看情绪、不看镜号是否连续，只看画面能不能在一条视频里连贯生成对。\n\n一、拆组的三个硬指标（满足任意一个就必须拆到不同组）\n1.人物整体姿势变化：蹲坐 / 站立 / 倒地 / 躺地 等大姿态之间切换必须拆。\n注意：必须结合前文镜号推断人物\"当前实际姿势\"，不能只看本镜文字。比如某个特写镜，若此刻人物是被打倒躺在地上的，就必须归到\"倒地\"组，不能和站立/蹲坐的镜号同组。\n2.背景/场景变化：所处环境或背景不同必须拆（例如躺在地上看到的背景 ≠ 站立望向远处大楼的背景，即使在同一地点）。\n3.画面内他人肢体或关键道具的介入状态变化：干净单人镜，与\"被他人拉扯/被打/有他人肢体或道具入画\"的镜头必须拆开，否则同条生成时该有的肢体缺失、或不该有的肢体多出来。\n二、不作为拆组依据\n1.景别：中景、近景、特写、大特写之间的变化不拆，靠一条视频内的推拉运镜解决。\n2.局部动作：抬头、低头、转头、握拳、眨眼等局部动作不拆，靠视频生成动作解决。\n3.头部朝向：差异不大不拆。\n4.表情、情绪：不拆，可逐镜给不同表情提示。\n5.光影、色调：权重低，不作为拆组依据。\n6.镜号是否连续：不要求连续，可跨镜号把符合同一状态的镜号归到一组。\n三、特殊镜头处理\n1.纯系统UI/字幕/血字类镜头（画面主体是界面而非人物身体）：可跨时间点归为一组，除非不同段落的UI底色/背景差异明显。\n2.空镜、无人物镜头：按背景是否一致分组。\n四、临界情况处理\n1.遇到\"姿势/背景/他人介入\"处于临界、拿不准该不该拆的镜号，先按\"倾向合并\"处理，但用 ⚠ 标出并说明差异点，由我决定是否拆开。不要自作主张拆得过碎。\n五、输出格式\n按组输出，每组标明分组依据，格式如下：\n组N【主体人物·姿势·背景·是否有他人介入】\n包含镜号：x、xx、xx\n\n#注意：组的命名按A-Z，每个组内的视频时长总和加起来如果超过28秒，则拆分为两个组，如：F1/F2"
+      },
+      {
+        "id": "card_1788643554264_me8s",
+        "number": 5,
+        "title": "人物形象",
+        "content": "我现在要把这个剧本做成AI短剧，请你分析小说里出场的角色，我现在需要生成主要角色的基础形象（类似正面全身证件照），不要过多描述，尽量直观客观，要求风格统一，按照以下模板，给出相对应角色的生图提示词（中文），没有背景/动作/不要添加表情描述，按照以下格式输出：\n性别:\n年龄:\n面部：\n身高/身材：\n头发:\n穿搭："
+      },
+      {
+        "id": "card_1788643953383_j124",
+        "number": 6,
+        "title": "人物生图",
+        "content": "核心排版与视图: 一张3D建模角色参考表(Character Sheet)，纯白纯色背景，无纹理、无杂物、无任何装饰元素，采用清晰的分屏排版布局。画面精确划分为左右两部分。\n右侧区域(占画面1/3): 超大、超高清的头部面部正视特写。头项上方留有适当的空白(负空间)。无表情，自然闭嘴。\n左侧区域(占画面2/3): 包含三个并排的、标准的全身正交视图:正视图、侧视图、后视图。视角平视，严禁任何透视畸变。面无表情，自然双唇闭合，神态平静淡然，双手自然下垂。完整全身立绘，从头到脚完整呈现\n风格：3D半写实CG风格，虚幻引擎5渲染\n"
+      },
+      {
+        "id": "card_1788643597757_tt1i",
+        "number": 7,
+        "title": "场景提示词",
+        "content": "我是AI短剧制作师，在我的工作流程中有一个步骤是把脚本给AI，让AI帮我写核心场地的提示词（空镜），用来生成场景全景图，现在请你根据文本帮我写生图的提示词（中文）"
+      },
+      {
+        "id": "card_1788643876269_oz0j",
+        "number": 8,
+        "title": "生图提示词",
+        "content": "# 角色\n你是一名AI短剧分镜提示词专家，负责将分镜脚本中指定的镜号转化为可直接使用的生图提示词。用户使用 gpt-image 生图，人物造型和场景均有固定资产图作为参考，成片为16:9横屏。\n\n# 输入\n用户会提供一份7列markdown分镜表（镜号/镜头控制/画面描述/台词/音效/时长/转场方式），提示词生成只依据【镜号】【镜头控制】【画面描述】【台词】列。\n- 分镜表中的场次标题行（如【场1：半山别墅·无边泳池·日·外】）用于识别场地、时间（日/夜）和内/外景\n- 子镜号（如13.1、14.1）是独立镜号，其缺失的镜头控制等信息由你根据画面描述和前后镜号自行推断补全\n\n用户的任务指令分两类，可能混合出现：\n1. 首帧图：指定单个或多个独立镜号\n2. 故事板：指定若干组连续镜号，并指定网格规格（如3x3、2x2、4x4）\n\n# 上下文推理（核心）\n- 生成任何镜号的提示词前，必须通读该镜号之前的所有镜号，据此推断当前画面的空间状态\n- 空间是否延续以场景资产为准：只要场景参考相同，即使跨过场次标题，空间关系、轴线、人物位置也必须延续；更换场景资产才重置空间关系\n- 同一空间内保持180度轴线一致：人物的左右关系一经确立，在后续所有镜号中不得无故翻转\n- 脚本未写明人物左右站位时，由你依据视线匹配、POV归属、动作逻辑自行裁定，并在该空间的所有后续镜号中锁定这一裁定\n- 人物姿态遵循延续性：上一镜坐着，本镜无起身描述则仍坐着\n- 人物的临时状态（如湿身滴水、头发贴额、眼眶发红、衣衫凌乱）一旦出现，必须写入后续所有镜号的提示词并持续保持，直到脚本明确该状态解除；资产图呈现的是人物默认状态，与当前状态不符时以提示词描述为准\n\n# 资产引用格式\n每条提示词正文之前，先列出本帧画面中实际出现的资产：\n人物参考：（本帧入画的角色名，POV镜头中视点归属者不入画则不列出）\n场景参考：（场地名）\n关键道具：（仅当道具是画面主体或重要元素时列出，如\"陆霄的手机\"；无则省略此行）\n纯空镜或纯道具镜头可以没有人物参考。\n\n# 通用规则\n- 不描述人物的外貌、服装和场景的固有美术细节（资产图会提供参考），直接用角色名/场地名指代；脚本中出现的外貌细节（如饰品）若属于资产图自带内容，一律不写\n- 必须描述本镜的光线、时间与氛围（如正午顶光、逆光、水面反光），这些信息资产图无法提供\n- 必须详细描述空间关系，这是提示词的核心：\n  - 人物在画面中的站位（左/中/右、前景/中景/背景）\n  - 人物与场景元素的位置关系（如\"躺在遮阳伞下的躺椅上\"\"平躺在泳池边石板上\"）\n  - 多人时彼此的相对位置、距离、朝向和视线方向\n  - 人物身体朝向与面向镜头的角度（正面/侧面/背面/四分之三侧）\n- 台词不出现在画面中，仅用于推断人物的表情、情绪和口型（说话中的人物嘴部微张）；OS/画外台词的说话者不影响画面\n- 将【镜头控制】准确转译为画面语言：景别、机位角度（平视/俯拍/仰拍/低机位/过肩/POV）、构图方式；特写和近景补充景深描述（如背景虚化）\n- 若【镜头控制】与【画面描述】冲突，以【画面描述】为准\n- 空镜/无人物镜头正常描述场景构图与氛围\n- 提示词信息密度要高，宁可详细不可含糊，但不堆砌无意义的修饰词\n- 每条提示词正文末尾附加：16:9横屏画幅，画面中不出现任何文字、字幕、水印\n\n# 首帧图规则\n- 首帧图用于图生视频，写实电影感画面\n- 人物姿态取动作的起始点或蓄势瞬间，不取动作完成态\n- 若画面描述包含突发中断（如说话中途被水浇），首帧取中断发生之前的状态，突发事件留给视频生成\n- 若镜头有运镜（推/拉/摇/移），首帧取运镜起点的机位和取景；起点若是道具或局部特写，则首帧只含该内容，人物不入画\n- 只描述这一帧的静态画面，不描述后续动作过程\n\n# 故事板规则\n- 输出为一整张网格图的提示词，开头声明规格与风格（如\"3x3九宫格分镜故事板，16:9横版，黑白手绘草图风格，粗线条速写，按从左到右、从上到下的顺序展现连续画面\"）\n- 将该组所有镜号的内容按时间顺序合并为一段连贯叙述，完整呈现剧情的动作发展、镜头景别变化和人物位置变化\n- 叙述中的画面节拍数量必须严格等于网格总格数：镜号不足时，将关键动作拆分为起始/发展/结果多个节拍补足；镜号过多时优先保留动作转折点\n- 每个节拍需含明确的画面信息：景别、机位、人物姿态与位置，确保模型能据此逐格拆分\n- 空间关系与状态延续同样遵循上下文推理规则，整段叙述中人物方位与轴线保持一致\n\n# 输出格式\n严格按以下格式输出，只输出用户指令中涉及的任务类型，各条提示词之间空两行，不输出任何解释、前言或总结：\n\n首帧图：\n镜号06\n人物参考：厉承勋、陆霄\n场景参考：半山别墅无边泳池\n提示词正文\n\n故事板：\n镜号09/10/11\n人物参考：沈雾荞、陆霄、厉承勋\n场景参考：半山别墅无边泳池\n提示词正文"
+      },
+      {
+        "id": "card_1788643876399_r5zi",
+        "number": 9,
+        "title": "视频提示词",
+        "content": "# 角色\n\n你是一名AI短剧视频提示词专家，负责将分镜脚本中指定的镜号转化为可直接使用的Seedance视频生成提示词。用户采用图生视频工作流，每条视频以首帧图起始，人物有固定资产图；成片为16:9横屏。\n\n# 输入\n\n用户会提供一份7列markdown分镜表（镜号/镜头控制/画面描述/台词/音效/时长/转场方式），提示词生成依据【镜号】【镜头控制】【画面描述】【台词】【时长】【转场方式】列。\n\n- 分镜表中的场次标题行（如【场1：半山别墅·无边泳池·日·外】）用于识别场地和内/外景\n- 子镜号（如13.1、14.1）是独立镜号，其缺失的镜头控制等信息由你根据画面描述和前后镜号自行推断补全\n\n用户的任务指令为：指定若干组镜号，每一组生成一条视频提示词。\n\n- 用户可能集中套拍，同组镜号不一定连续，按用户指定的分组执行，不质疑分组合理性\n- 组内含多个镜头时，按脚本时间顺序用\"**切换镜头：**\"衔接\n- 禁止输出未被指定的镜号\n\n# 上下文推理（核心）\n\n- 生成任何镜号的提示词前，必须通读该镜号之前的所有镜号，据此推断当前画面的空间状态\n- 空间是否延续以场景为准：同一场地内，空间关系、轴线、人物位置必须延续；更换场地才重置空间关系\n- 同一空间内保持180度轴线一致：人物的左右关系一经确立，不得无故翻转；人物位置随剧情动作（走动、跳水、跪到某人身侧等）更新，每次位移后以新位置为准，位移必须由脚本明写或隐含的动作驱动\n- 脚本未写明人物左右站位时，由你依据视线匹配、POV归属、动作逻辑自行裁定，并在该空间的所有后续镜号中沿用这一裁定\n- 人物姿态遵循延续性：上一镜坐着，本镜无起身描述则仍坐着\n- 人物的临时状态（如湿身滴水、头发贴额、眼眶发红、衣衫凌乱）一旦出现，必须写入后续所有镜号并持续保持，直到脚本明确解除；资产图呈现的是默认状态，与当前状态不符时以提示词描述为准\n\n# 通用规则\n\n- 禁止照搬脚本原文。先理解画面在发生什么，再用自己的语言重新描述\n- **补全隐含动作**：脚本省略但画面上必经的过程（如从\"入水\"到\"平躺池边\"之间必有\"拖上岸\"），必须写出\n- 动作写具体可见的物理行为（手指打滑、指节泛白、湿发贴脸），情绪通过表情和微动作外化，不写抽象心理描述\n- 不描述人物外貌、服装和场景固有美术细节（资产图与首帧图会提供），直接用角色名指代；不做环境静态交代（不写\"泳池边\"\"房间内\"），但**与动作直接交互的环境物件保留**（如\"抓住泳池边沿\"\"撞翻桌上的杯子\"）\n- 必须详细描述空间关系：人物站位（画左/画右/前景/背景）、多人间的相对位置、距离、朝向和视线方向\n- 参考【时长】列控制节奏：动作量与镜头切换数量要能在该时长内完成，不塞入无法容纳的信息\n- 每条提示词按完整复杂度写，禁止提供降级/简化的备选版本\n- 正文中不出现镜号、场号等脚本元信息\n\n# 正文写作规范\n\n组内每个镜头段落按以下顺序组织：\n\n1. 景别 + 机位角度 + 运镜方式（如：中景，固定镜头，俯拍）\n2. 人物站位与前后景关系\n3. 具体动作与表情，按时间顺序推进\n4. 台词（如有）\n\n- 组内首个镜头从首帧图的静态状态起始，衔接自然，重点写动作如何展开\n- 台词写法：`某某急声喊道：压枪压枪！你往左！`（人物+语气动词+冒号+台词，不加引号）\n- OS内心独白正常写入：`某某的内心独白：……`\n- 画外发声正常写入：`画外传来XX的XX声：……`\n\n# 输出格式\n\n严格按以下格式输出，各条提示词之间空两行，不输出任何解释、前言或总结：\n镜号06/07/08\n人物：厉承勋、陆霄\n\n交互场地：\n\n镜头1：\n镜号06对应的提示词正文\n镜头2：\n镜号07对应的提示词正文\n镜头3：\n镜号08对应的提示词正文"
+      }
+    ];;
+
+    function loadGistConfig() {
+      try {
+        const saved = localStorage.getItem(GIST_CONF_KEY);
+        if (saved) gistConfig = JSON.parse(saved);
+      } catch (e) {
+        console.warn('读取同步配置失败:', e);
+      }
+    }
+
+    function saveGistConfig() {
+      try {
+        localStorage.setItem(GIST_CONF_KEY, JSON.stringify(gistConfig));
+      } catch (e) {
+        console.warn('保存同步配置失败:', e);
+      }
+    }
+
+    function isCloudReady() {
+      return !!(gistConfig.gistId && gistConfig.token);
+    }
+
+    function loadData() {
+      let hasLocal = false;
+      try {
+        const saved = localStorage.getItem(LOCAL_CACHE_KEY);
+        if (saved) {
+          cards = JSON.parse(saved);
+          hasLocal = true;
+        }
+      } catch (e) {
+        console.warn('读取本地缓存失败:', e);
+      }
+
+      if (!hasLocal) {
+        try {
+          const legacy = localStorage.getItem(LOCAL_STORAGE_KEY);
+          if (legacy) {
+            cards = JSON.parse(legacy);
+            hasLocal = true;
+          }
+        } catch (e) {
+          console.warn('读取旧版数据失败:', e);
+        }
+      }
+
+      if (!hasLocal || !cards || cards.length === 0) {
+        cards = JSON.parse(JSON.stringify(DEFAULT_CARDS));
+        saveLocalCache();
+      }
+    }
+
+    function saveLocalCache() {
+      try {
+        localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(cards));
+      } catch (e) {
+        console.warn('写入本地缓存失败:', e);
+      }
+    }
+
+    function saveData() {
+      saveLocalCache();
+      if (isCloudReady()) {
+        scheduleCloudPush();
+      }
+    }
+
+    function scheduleCloudPush() {
+      if (syncTimer) clearTimeout(syncTimer);
+      setSyncStatus('pending', '待同步…');
+      syncTimer = setTimeout(() => {
+        pushToCloud();
+      }, 800);
+    }
+
+    async function pushToCloud() {
+      if (isSyncing || !isCloudReady()) return;
+      isSyncing = true;
+      setSyncStatus('syncing', '同步中…');
+      try {
+        const content = JSON.stringify({
+          updatedAt: new Date().toISOString(),
+          cards: cards
+        }, null, 2);
+
+        const res = await fetch('https://api.github.com/gists/' + gistConfig.gistId, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': 'Bearer ' + gistConfig.token,
+            'Accept': 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            files: {
+              [GIST_FILENAME]: { content: content }
+            }
+          })
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error('HTTP ' + res.status + ' ' + errText.slice(0, 160));
+        }
+
+        setSyncStatus('ok', '已同步 ' + formatClock());
+      } catch (e) {
+        console.error('推送云端失败:', e);
+        setSyncStatus('error', '同步失败，点击重试');
+      } finally {
+        isSyncing = false;
+      }
+    }
+
+    async function pullFromCloud(silent) {
+      if (!isCloudReady()) return false;
+      if (!silent) setSyncStatus('syncing', '拉取中…');
+      try {
+        const res = await fetch('https://api.github.com/gists/' + gistConfig.gistId + '?_t=' + Date.now(), {
+          headers: {
+            'Authorization': 'Bearer ' + gistConfig.token,
+            'Accept': 'application/vnd.github+json'
+          },
+          cache: 'no-store'
+        });
+
+        if (!res.ok) {
+          throw new Error('HTTP ' + res.status);
+        }
+
+        const data = await res.json();
+        const file = data.files && data.files[GIST_FILENAME];
+        if (!file) {
+          throw new Error('Gist 中没有找到 ' + GIST_FILENAME);
+        }
+
+        let remoteContent = file.content;
+        if (file.truncated && file.raw_url) {
+          const rawRes = await fetch(file.raw_url, { cache: 'no-store' });
+          remoteContent = await rawRes.text();
+        }
+
+        const parsed = JSON.parse(remoteContent);
+        const remoteCards = Array.isArray(parsed) ? parsed : parsed.cards;
+
+        if (!Array.isArray(remoteCards)) {
+          throw new Error('云端数据格式不正确');
+        }
+
+        cards = remoteCards;
+        saveLocalCache();
+        renderCards();
+        setSyncStatus('ok', '已同步 ' + formatClock());
+        if (!silent) showToast('已从云端拉取 ' + cards.length + ' 张卡片');
+        return true;
+      } catch (e) {
+        console.error('拉取云端失败:', e);
+        setSyncStatus('error', '拉取失败，点击重试');
+        return false;
+      }
+    }
+
+    function formatClock() {
+      const d = new Date();
+      const p = n => String(n).padStart(2, '0');
+      return p(d.getHours()) + ':' + p(d.getMinutes());
+    }
+
+    function setSyncStatus(state, text) {
+      const el = document.getElementById('syncStatus');
+      if (!el) return;
+      el.textContent = text;
+      el.dataset.state = state;
+      el.classList.remove('sync-ok', 'sync-error', 'sync-syncing', 'sync-pending');
+      el.classList.add('sync-' + state);
+    }
+
+    function parseMarkdown(text) {
+      if (!text) return '<p style="color:#94a3b8; font-style:italic;">(空文本)</p>';
+
+      let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      html = html.replace(/```([\s\S]*?)```/g, function(match, code) {
+        return '<pre><code>' + code.trim() + '</code></pre>';
+      });
+
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+      html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+      html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+      html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>');
+      html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li>$1</li>');
+      html = html.replace(/(<li>.*<\/li>)/gim, '<ul>$1</ul>');
+      html = html.replace(/<\/ul>\s*<ul>/gim, '');
+
+      html = html.split('\n\n').map(para => {
+        if (para.startsWith('<h') || para.startsWith('<pre') || para.startsWith('<ul') || para.startsWith('<blockquote')) {
+          return para;
+        }
+        return '<p>' + para.replace(/\n/g, '<br>') + '</p>';
+      }).join('');
+
+      return html;
+    }
+
+    const cardsContainer = document.getElementById('cardsContainer');
+    const cardCountInfo = document.getElementById('cardCountInfo');
+
+    function renderCards() {
+      cardCountInfo.textContent = `卡片数量：${cards.length} / 100`;
+
+      if (cards.length === 0) {
+        cardsContainer.innerHTML = `
+          <div class="empty-state">
+            <h3 style="color:#0f172a;">暂无卡片</h3>
+            <p style="margin-top: 8px;">点击左上角「添加」创建你的第 1 张卡片（上限 100 张）。</p>
+          </div>
+        `;
+        return;
+      }
+
+      cardsContainer.innerHTML = '';
+
+      cards.forEach((card) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card';
+        cardEl.id = `card-elem-${card.id}`;
+
+        cardEl.innerHTML = `
+          <div class="card-header">
+            <div class="badge-number-box">
+              <span class="badge-number-label">编号:</span>
+              <input 
+                type="number" 
+                class="badge-number-val" 
+                min="1" 
+                max="100" 
+                value="${card.number}" 
+                ${!isUnlocked ? 'readonly disabled' : ''}
+                onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                oninput="if(this.value.length > 3) this.value = this.value.slice(0, 3);"
+                onchange="handleCardNumberChange('${card.id}', this.value, ${card.number})"
+                title="${isUnlocked ? '修改编号位置 (手动输入 1-100，回车或失焦后自动顺延重排)' : '已锁定，解锁后可修改'}"
+              />
+            </div>
+            <button class="btn-edit-action" onclick="openEditModal('${card.id}')" title="打开大文本编辑框">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              编辑
+            </button>
+          </div>
+
+          <div class="card-title-section">
+            <div class="title-view" title="${isUnlocked ? '点击解锁编辑' : '已锁定只读'}">${escapeHtml(card.title || '（无标题）')}</div>
+            <input 
+              type="text" 
+              class="title-input" 
+              value="${escapeAttr(card.title || '')}" 
+              placeholder="输入标题..." 
+              oninput="updateCardTitle('${card.id}', this.value)"
+            />
+          </div>
+
+          <div class="card-footer">
+            <button class="btn-copy" onclick="copyCardContent('${card.id}')" title="只复制文本框内内容，不复制标题">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              复制
+            </button>
+
+            <button class="btn-trash-corner" onclick="openDeleteModal('${card.id}')" title="删除卡片">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+        `;
+
+        cardsContainer.appendChild(cardEl);
+      });
+    }
+
+    window.handleCardNumberChange = function(cardId, newValStr, oldVal) {
+      let newVal = parseInt(newValStr, 10);
+
+      if (isNaN(newVal) || newVal < 1 || newVal > 100) {
+        alert('请输入 1 到 100 之间的整数！');
+        renderCards();
+        return;
+      }
+
+      if (newVal === oldVal) return;
+
+      const fromIndex = cards.findIndex(c => c.id === cardId);
+      if (fromIndex === -1) return;
+
+      let targetIndex = newVal - 1;
+      if (targetIndex >= cards.length) {
+        targetIndex = cards.length - 1;
+      }
+      if (targetIndex < 0) {
+        targetIndex = 0;
+      }
+
+      const [targetCard] = cards.splice(fromIndex, 1);
+      cards.splice(targetIndex, 0, targetCard);
+
+      cards.forEach((c, idx) => {
+        c.number = idx + 1;
+      });
+
+      saveData();
+      renderCards();
+
+      showToast(`已将卡片调整至 [编号: ${targetCard.number}]，其余编号已自动顺延！`);
+    };
+
+    window.updateCardTitle = function(cardId, val) {
+      const card = cards.find(c => c.id === cardId);
+      if (card) {
+        card.title = val;
+        saveData();
+      }
+    };
+
+    const deleteModalOverlay = document.getElementById('deleteModalOverlay');
+    const deleteTargetInfo = document.getElementById('deleteTargetInfo');
+    const deleteConfirmInput = document.getElementById('deleteConfirmInput');
+    const btnExecuteDelete = document.getElementById('btnExecuteDelete');
+
+    window.openDeleteModal = function(cardId) {
+      const card = cards.find(c => c.id === cardId);
+      if (!card) return;
+
+      pendingDeleteCardId = cardId;
+      deleteTargetInfo.textContent = `[编号: ${card.number}] ${card.title || '（无标题）'}`;
+      deleteConfirmInput.value = '';
+      btnExecuteDelete.disabled = true;
+      btnExecuteDelete.classList.remove('enabled');
+
+      deleteModalOverlay.classList.add('active');
+      setTimeout(() => {
+        deleteConfirmInput.focus();
+      }, 100);
+    };
+
+    window.closeDeleteModal = function() {
+      deleteModalOverlay.classList.remove('active');
+      pendingDeleteCardId = null;
+      deleteConfirmInput.value = '';
+    };
+
+    function handleDeleteBackdropClick(event) {
+      if (event.target === deleteModalOverlay) {
+        closeDeleteModal();
+      }
+    }
+
+    window.onDeleteInputCheck = function(val) {
+      if (val.trim() === REQUIRED_DELETE_SECRET) {
+        btnExecuteDelete.disabled = false;
+        btnExecuteDelete.classList.add('enabled');
+      } else {
+        btnExecuteDelete.disabled = true;
+        btnExecuteDelete.classList.remove('enabled');
+      }
+    };
+
+    deleteConfirmInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !btnExecuteDelete.disabled) {
+        executeCardDeletion();
+      }
+    });
+
+    window.executeCardDeletion = function() {
+      if (!pendingDeleteCardId) return;
+
+      const cardId = pendingDeleteCardId;
+      cards = cards.filter(c => c.id !== cardId);
+
+      cards.forEach((c, idx) => {
+        c.number = idx + 1;
+      });
+
+      saveData();
+
+      if (activeCardId === cardId) {
+        closeEditModal();
+      }
+
+      closeDeleteModal();
+      renderCards();
+      showToast('卡片已成功删除，所有编号编号已随之自动按序重排！');
+    };
+
+    const editModalOverlay = document.getElementById('editModalOverlay');
+    const modalCardNumber = document.getElementById('modalCardNumber');
+    const modalCardTitle = document.getElementById('modalCardTitle');
+    const modalLockBadge = document.getElementById('modalLockBadge');
+    const modalBodyContainer = document.getElementById('modalBodyContainer');
+
+    window.openEditModal = function(cardId) {
+      const card = cards.find(c => c.id === cardId);
+      if (!card) return;
+
+      activeCardId = cardId;
+      modalCardNumber.textContent = card.number;
+      modalCardTitle.textContent = card.title || '（无标题）';
+
+      updateModalLockStatus();
+      renderModalBody();
+
+      editModalOverlay.classList.add('active');
+    };
+
+    window.closeEditModal = function() {
+      editModalOverlay.classList.remove('active');
+      activeCardId = null;
+      renderCards();
+    };
+
+    function handleBackdropClick(event) {
+      if (event.target === editModalOverlay) {
+        closeEditModal();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (deleteModalOverlay.classList.contains('active')) {
+          closeDeleteModal();
+        } else if (editModalOverlay.classList.contains('active')) {
+          closeEditModal();
+        }
+      }
+    });
+
+    function updateModalLockStatus() {
+      if (isUnlocked) {
+        modalLockBadge.className = 'modal-lock-badge unlocked';
+        modalLockBadge.textContent = '🔓 解锁状态 (可自由编辑)';
+      } else {
+        modalLockBadge.className = 'modal-lock-badge locked';
+        modalLockBadge.textContent = '🔒 锁定状态 (只读/可复制)';
+      }
+    }
+
+    function renderModalBody() {
+      const card = cards.find(c => c.id === activeCardId);
+      if (!card) return;
+
+      if (!isUnlocked) {
+        modalBodyContainer.innerHTML = `
+          <div class="modal-lock-alert">
+            <span>🔒</span>
+            <span>当前处于<b>锁定状态</b>，内容仅供浏览与复制。如需修改文本，请先关闭弹窗并点击页面右上角的<b>解锁</b>按钮。</span>
+          </div>
+          <div class="modal-markdown-view">
+            ${parseMarkdown(card.content)}
+          </div>
+        `;
+      } else {
+        modalBodyContainer.innerHTML = `
+          <div class="modal-editor-container">
+            <div class="editor-tabs-bar">
+              <div class="tab-group">
+                <button class="tab-btn ${currentEditorMode === 'split' ? 'active' : ''}" onclick="setModalEditorMode('split')">🌓 双栏分屏 (推荐)</button>
+                <button class="tab-btn ${currentEditorMode === 'edit' ? 'active' : ''}" onclick="setModalEditorMode('edit')">✏️ 纯编辑源码</button>
+                <button class="tab-btn ${currentEditorMode === 'preview' ? 'active' : ''}" onclick="setModalEditorMode('preview')">👁️ 纯预览排版</button>
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted);">
+                实时自动保存 · 兼容 Markdown 语法
+              </div>
+            </div>
+
+            <div class="editor-workspace mode-${currentEditorMode}" id="editorWorkspace">
+              <div class="editor-pane">
+                <textarea 
+                  id="modalTextarea" 
+                  class="modal-textarea" 
+                  placeholder="在此输入兼容 Markdown 的大段文本内容..."
+                  oninput="onModalTextareaInput(this.value)"
+                >${escapeHtml(card.content || '')}</textarea>
+              </div>
+              <div class="editor-preview-pane modal-markdown-view" id="modalPreviewPane">
+                ${parseMarkdown(card.content)}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    window.setModalEditorMode = function(mode) {
+      currentEditorMode = mode;
+      const workspace = document.getElementById('editorWorkspace');
+      if (workspace) {
+        workspace.className = `editor-workspace mode-${mode}`;
+      }
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = event.currentTarget;
+      if (activeBtn) activeBtn.classList.add('active');
+    };
+
+    window.onModalTextareaInput = function(val) {
+      const card = cards.find(c => c.id === activeCardId);
+      if (card) {
+        card.content = val;
+        saveData();
+
+        const previewPane = document.getElementById('modalPreviewPane');
+        if (previewPane) {
+          previewPane.innerHTML = parseMarkdown(val);
+        }
+      }
+    };
+
+    window.copyCurrentModalText = function() {
+      const card = cards.find(c => c.id === activeCardId);
+      if (!card) return;
+      copyCardContent(card.id);
+    };
+
+    const btnToggleLock = document.getElementById('btnToggleLock');
+    const lockIcon = document.getElementById('lockIcon');
+    const lockStatusText = document.getElementById('lockStatusText');
+
+    btnToggleLock.addEventListener('click', () => {
+      isUnlocked = !isUnlocked;
+      if (isUnlocked) {
+        document.body.classList.add('is-unlocked');
+        btnToggleLock.classList.remove('locked');
+        btnToggleLock.classList.add('unlocked');
+        lockIcon.textContent = '🔓';
+        lockStatusText.textContent = '已解锁 (点击锁定保存)';
+        showToast('🔓 已开启编辑模式：可修改编号、标题与大文本框');
+      } else {
+        document.body.classList.remove('is-unlocked');
+        btnToggleLock.classList.remove('unlocked');
+        btnToggleLock.classList.add('locked');
+        lockIcon.textContent = '🔒';
+        lockStatusText.textContent = '已锁定 (点击开启编辑)';
+        saveData();
+        renderCards();
+        showToast('🔒 已切换为锁定状态：文本内容仅供浏览与复制');
+      }
+
+      if (activeCardId) {
+        updateModalLockStatus();
+        renderModalBody();
+      }
+
+      document.querySelectorAll('.badge-number-val').forEach(input => {
+        input.readOnly = !isUnlocked;
+        input.disabled = !isUnlocked;
+      });
+    });
+
+    const btnAddCard = document.getElementById('btnAddCard');
+    btnAddCard.addEventListener('click', () => {
+      if (cards.length >= 100) {
+        alert('当前卡片数量已达到 100 张上限！');
+        return;
+      }
+
+      const nextNum = cards.length + 1;
+      const newCard = {
+        id: 'card_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        number: nextNum,
+        title: `卡片${nextNum}`,
+        content: `### 这是卡片 ${nextNum} 的 Markdown 文本内容\n\n- 点击【编辑】可在大文本框中修改\n- 点击下方【复制】即可纯文本复制本段正文`
+      };
+
+      cards.push(newCard);
+      cards.forEach((c, idx) => c.number = idx + 1);
+      saveData();
+      renderCards();
+      showToast(`已生成 [卡片${nextNum}] (编号: ${nextNum})`);
+
+      setTimeout(() => {
+        const el = document.getElementById(`card-elem-${newCard.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    });
+
+    window.copyCardContent = function(cardId) {
+      const card = cards.find(c => c.id === cardId);
+      if (!card) return;
+
+      const textToCopy = card.content || '';
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          showToast(`已复制 [${card.title}] 的正文内容！`);
+        }).catch(() => {
+          fallbackCopy(textToCopy, card.title);
+        });
+      } else {
+        fallbackCopy(textToCopy, card.title);
+      }
+    };
+
+    function fallbackCopy(text, title) {
+      const tempArea = document.createElement('textarea');
+      tempArea.value = text;
+      tempArea.style.position = 'fixed';
+      tempArea.style.left = '-9999px';
+      document.body.appendChild(tempArea);
+      tempArea.select();
+      try {
+        document.execCommand('copy');
+        showToast(`已复制 [${title}] 的正文内容！`);
+      } catch (e) {
+        alert('复制失败，请手动选取复制');
+      }
+      document.body.removeChild(tempArea);
+    }
+
+    let toastTimeout = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotice');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.textContent = msg;
+      toast.classList.add('show');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2400);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttr(str) {
+      return String(str)
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    document.getElementById('btnExportJson').addEventListener('click', () => {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        source: 'FLOWCARD_CLOUD_V1',
+        cards: cards
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'cards-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('已导出 ' + cards.length + ' 张卡片到本地');
+    });
+
+    const gistModalOverlay = document.getElementById('gistModalOverlay');
+    const inputGistId = document.getElementById('inputGistId');
+    const inputToken = document.getElementById('inputToken');
+
+    function openGistModal() {
+      inputGistId.value = gistConfig.gistId || '';
+      inputToken.value = gistConfig.token || '';
+      gistModalOverlay.classList.add('active');
+      setTimeout(() => {
+        (gistConfig.gistId ? inputToken : inputGistId).focus();
+      }, 80);
+    }
+
+    function closeGistModal() {
+      gistModalOverlay.classList.remove('active');
+    }
+
+    document.getElementById('btnSyncSettings').addEventListener('click', openGistModal);
+    document.getElementById('syncStatus').addEventListener('click', openGistModal);
+    document.getElementById('btnGistCancel').addEventListener('click', closeGistModal);
+
+    gistModalOverlay.addEventListener('click', (e) => {
+      if (e.target === gistModalOverlay) closeGistModal();
+    });
+
+    document.getElementById('btnGistClear').addEventListener('click', () => {
+      if (!confirm('确定要清除本机保存的同步配置吗？\n（云端数据不会被删除，清除后需重新填写才能同步）')) return;
+      gistConfig = { gistId: '', token: '' };
+      saveGistConfig();
+      setSyncStatus('pending', '未开启同步');
+      closeGistModal();
+      showToast('已清除本机同步配置');
+    });
+
+    document.getElementById('btnGistSave').addEventListener('click', async () => {
+      const gid = inputGistId.value.trim();
+      const tk = inputToken.value.trim();
+
+      if (!gid || !tk) {
+        alert('两项都要填：Gist ID 和 GitHub 令牌。');
+        return;
+      }
+
+      gistConfig = { gistId: gid, token: tk };
+      closeGistModal();
+      setSyncStatus('syncing', '连接中…');
+
+      const ok = await pullFromCloud(true);
+      if (ok) {
+        saveGistConfig();
+        showToast('连接成功，已同步 ' + cards.length + ' 张卡片');
+        saveData();
+      } else {
+        const keep = confirm('连接失败。\n\n可能原因：Gist ID 或令牌不正确、令牌没有 gist 权限、Gist 里没有 cards.json 文件。\n\n要保留刚才填写的内容吗？（点取消则撤销）');
+        if (keep) {
+          saveGistConfig();
+        } else {
+          gistConfig = { gistId: '', token: '' };
+          setSyncStatus('pending', '未开启同步');
+        }
+      }
+    });
+
+    document.getElementById('btnSyncNow').addEventListener('click', () => {
+      if (!isCloudReady()) {
+        openGistModal();
+        return;
+      }
+      pullFromCloud(false);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && isCloudReady()) {
+        pullFromCloud(true);
+      }
+    });
+
+    loadData();
+    renderCards();
+    loadGistConfig();
+
+    if (isCloudReady()) {
+      setSyncStatus('syncing', '连接中…');
+      pullFromCloud(true);
+    } else {
+      setSyncStatus('pending', '未开启同步');
+    }
+
+    (function initGate() {
+      const GATE_PASSWORD = 'trq117';
+      const GATE_KEY = 'FLOWCARD_GATE_OK_V1';
+      const overlay = document.getElementById('gateOverlay');
+      const input = document.getElementById('gateInput');
+      const btn = document.getElementById('gateBtn');
+      const tip = document.getElementById('gateTip');
+
+      function unlock() {
+        try { localStorage.setItem(GATE_KEY, '1'); } catch (e) {}
+        overlay.classList.add('hidden');
+        if (isCloudReady()) pullFromCloud(true);
+      }
+
+      function tryUnlock() {
+        const val = input.value;
+        if (val === GATE_PASSWORD) {
+          unlock();
+        } else {
+          input.classList.add('err');
+          tip.textContent = '密码不对，再试一次';
+          tip.style.color = '#ef4444';
+          setTimeout(() => input.classList.remove('err'), 400);
+          input.value = '';
+          input.focus();
+        }
+      }
+
+      let remembered = false;
+      try { remembered = localStorage.getItem(GATE_KEY) === '1'; } catch (e) {}
+
+      if (remembered) {
+        overlay.classList.add('hidden');
+        if (isCloudReady()) pullFromCloud(true);
+      } else {
+        setTimeout(() => input.focus(), 120);
+      }
+
+      btn.addEventListener('click', tryUnlock);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') tryUnlock();
+      });
+    })();
+  </script>
+</body>
+</html>
